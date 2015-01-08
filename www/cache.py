@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 from flask import Flask, redirect
-import os, urllib, thread, subprocess
+import os, urllib, thread, boto
+from boto.s3.key import Key
 app = Flask(__name__)
 
+# Login to S3
+conn = boto.connect_s3()
+bucket = conn.get_bucket("juliacache")
 
 # This is the list of files we have successfully cached in the past and can spit out immediately
-aws_cache = subprocess.check_output(["aws", "ls", "-l", "juliacache"]).split()[6::7]
+aws_cache = [z.name for z in bucket.get_all_keys()]
 
 # This is the list of files that are currently downloading, so we don't download it twice
 pending_cache = []
@@ -34,7 +38,10 @@ def add_to_cache(url, name):
 
 	# Upload it to AWS and cleanup the temporary file
 	print "[%s] Starting upload"%(name)
-	os.system("aws put --public juliacache/%s %s"%(name, tmp_name))
+	k = Key(bucket)
+	k.key = name
+	k.set_contents_from_filename(tmp_name)
+	k.set_acl('public-read')
 	os.unlink(tmp_name)
 
 	print "[%s] Finished upload"%(name)
