@@ -75,7 +75,7 @@ def cache(name):
 # Asking for nothing gives you the currently cached files
 @app.route("/")
 def index():
-	return "Currently caching %d files:\n%s"%(len(aws_cache), "\n  ".join(aws_cache))
+	return "Currently caching <b>%d</b> files:<br/><b>\n%s</b>"%(len(aws_cache), "<br/>\n".join(aws_cache))
 
 if __name__ == "__main__":
-	app.run(debug=True)
+	app.run()
