@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from flask import Flask, redirect
 import os, urllib, thread, boto, re
+from os.path import dirname, basename
 from boto.s3.key import Key
 app = Flask(__name__)
 
@@ -23,20 +24,20 @@ whitelist = [
 	# WinRPM binaries
 	"download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d\.]+/[^/]+",
 
+	# Various deps/ tarball locations
 	"faculty.cse.tamu.edu/davis/SuiteSparse",
 	"download.savannah.gnu.org/releases/libunwind",
 	"github.com/[^/]+/[^/]+/archive",
 	"gmplib.org/download/gmp",
 	"mpfr.org/mpfr-current",
-	"nixos.org/releases/patchelf",
+	"nixos.org/releases/patchelf/patchelf-[\d\.]+",
 	"kernel.org/pub/software/scm/git",
 	"pypi.python.org/packages/source/v/virtualenv",
-	"llvm.org/releases",
+	"llvm.org/releases/[\d\.]+",
 	"math.sci.hiroshima-u.ac.jp/~m-mat/MT/SFMT",
 	"agner.org/optimize",
 	"netlib.org/lapack",
 	"fftw.org",
-	
 
 
 	# You're naughty, so you get to sit in the corner, away from the other URLs
@@ -110,12 +111,16 @@ def cache(url):
 		print "Rejecting %s because it's not on the list"%(url)
 		return redirect(url, code=301)
 
-	# Take basename for storage purposes (If we're dealing with a sane hosting provider, that is)
-	if not "sourceforge" in url:
-		name = os.path.basename(url)
-	else:
+	# Take basename for storage purposes, dealing with various oddities where we can:
+	if "sourceforge" in url:
 		# I'M LOOING AT YOU, SOURCEFORGE
-		name = os.path.basename(url[:-9])
+		name = basename(url[:-9])
+	elif "github" in url and basename(dirname(url)) == "archive":
+		name = basename(dirname(dirname(url))) + "-" + basename(url)
+		print "github: name"
+	else:
+		name = basename(url)
+
 	
 	# Search for `name` in the cache already
 	if not name in aws_cache:
