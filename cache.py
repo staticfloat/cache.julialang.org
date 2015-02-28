@@ -28,6 +28,7 @@ whitelist = [
 	"faculty.cse.tamu.edu/davis/SuiteSparse",
 	"download.savannah.gnu.org/releases/libunwind",
 	"github.com/[^/]+/[^/]+/archive",
+	"github.com/[^/]+/[^/]+/releases",
 	"gmplib.org/download/gmp",
 	"mpfr.org/mpfr-current",
 	"nixos.org/releases/patchelf/patchelf-[\d\.]+",
@@ -38,10 +39,12 @@ whitelist = [
 	"agner.org/optimize",
 	"netlib.org/lapack",
 	"fftw.org",
+	"unsis.googlecode.com/files",
 
 
 	# You're naughty, so you get to sit in the corner, away from the other URLs
 	"sourceforge.net/projects/pcre/files/pcre/[^/]+/[^/]+/download",
+	"downloads.sourceforge.net/sevenzip",
 ]
 
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
