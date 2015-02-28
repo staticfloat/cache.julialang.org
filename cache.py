@@ -40,6 +40,7 @@ whitelist = [
 	"netlib.org/lapack",
 	"fftw.org",
 	"unsis.googlecode.com/files",
+	"intgat.tigress.co.uk/rmy/files/busybox",
 
 
 	# You're naughty, so you get to sit in the corner, away from the other URLs
