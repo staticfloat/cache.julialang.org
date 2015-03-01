@@ -28,7 +28,7 @@ whitelist = [
 	"faculty.cse.tamu.edu/davis/SuiteSparse",
 	"download.savannah.gnu.org/releases/libunwind",
 	"github.com/[^/]+/[^/]+/archive",
-	"github.com/[^/]+/[^/]+/releases",
+	"github.com/[^/]+/[^/]+/releases/download/([^/]+)?",
 	"gmplib.org/download/gmp",
 	"mpfr.org/mpfr-current",
 	"nixos.org/releases/patchelf/patchelf-[\d\.]+",
@@ -118,10 +118,9 @@ def cache(url):
 	# Take basename for storage purposes, dealing with various oddities where we can:
 	if "sourceforge" in url:
 		# I'M LOOING AT YOU, SOURCEFORGE
-		name = basename(url[:-9])
+		name = basename(dirname(url))
 	elif "github" in url and basename(dirname(url)) == "archive":
 		name = basename(dirname(dirname(url))) + "-" + basename(url)
-		print "github: name"
 	else:
 		name = basename(url)
 
