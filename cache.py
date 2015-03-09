@@ -42,6 +42,10 @@ whitelist = [
 	"unsis.googlecode.com/files",
 	"intgat.tigress.co.uk/rmy/files/busybox",
 
+	# Add unicode fonts for libutf8
+	"unicode.org/Public/UCD/latest/ucd/auxiliary/",
+	"unicode.org/Public/UNIDATA/",
+	"unifoundry.com/pub/unifont-[\d\.]+/font-builds/",
 
 	# You're naughty, so you get to sit in the corner, away from the other URLs
 	"sourceforge.net/projects/pcre/files/pcre/[^/]+/[^/]+/download",
