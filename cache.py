@@ -55,10 +55,11 @@ whitelist = [
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
 def regexify(url):
 	# I hate sourceforge a little more every day
-	if not "sourceforge" in url:
-		return r"https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
-	else:
+	if url.startswith("sourceforge"):
 		return r"https?://(www\.)?" + url.replace(r".", r"\.")
+	else:
+		return r"https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+		
 whitelist = map(regexify, whitelist)
 
 
@@ -120,7 +121,7 @@ def cache(url):
 		return redirect(url, code=301)
 
 	# Take basename for storage purposes, dealing with various oddities where we can:
-	if "sourceforge" in url:
+	if "sourceforge" in url and basename(url) == "download":
 		# I'M LOOING AT YOU, SOURCEFORGE
 		name = basename(dirname(url))
 	elif "github" in url and basename(dirname(url)) == "archive":
