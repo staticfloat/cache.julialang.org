@@ -25,6 +25,7 @@ whitelist = [
 	"download.savannah.gnu.org/releases/libunwind",
 	"github.com/[^/]+/[^/]+/archive",
 	"github.com/[^/]+/[^/]+/releases/download/([^/]+)?",
+	"api.github.com/repos/[^/]+/[^/]+/tarball",
 	"gmplib.org/download/gmp",
 	"mpfr.org/mpfr-current",
 	"nixos.org/releases/patchelf/patchelf-[\d\.]+",
@@ -52,9 +53,9 @@ whitelist = [
 def regexify(url):
 	# I hate sourceforge a little more every day
 	if url.startswith("sourceforge"):
-		return r"https?://(www\.)?" + url.replace(r".", r"\.")
+		return r"^https?://(www\.)?" + url.replace(r".", r"\.")
 	else:
-		return r"https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+		return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
 		
 whitelist = map(regexify, whitelist)
 
