@@ -164,9 +164,12 @@ def rebuild_cache():
 	for k in all_keys:
 		# First, check to see if this is an .etag file.  If it is, load in the .etag goodness
 		if k.name[-5:] == ".etag":
-			etag = k.get_contents_as_string()
-			new_aws_cache[k.name[:-5]]["etag"] = etag
-			print "Loaded etag for %s: %s"%(k.name[:-5], etag)
+			if k.name[:-5] in new_aws_cache:
+				etag = k.get_contents_as_string()
+				new_aws_cache[k.name[:-5]]["etag"] = etag
+				print "Loaded etag for %s: %s"%(k.name[:-5], etag)
+			else:
+				print "WARN: etag found for non-existant file %s"%(k.name[:-5])
 		else:
 			# If we've never seen this guy before, initialize him, otherwise, copy from aws_cache
 			if not k.name in aws_cache:
