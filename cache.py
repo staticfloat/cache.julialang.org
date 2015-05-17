@@ -44,19 +44,17 @@ whitelist = [
 	"unicode.org/Public/UNIDATA",
 	"unifoundry.com/pub/unifont-[\d\.]+/font-builds",
 
-	# You're naughty, so you get to sit in the corner, away from the other URLs
-	"sourceforge.net/projects/pcre/files/pcre/[^/]+/[^/]+/download",
+	# Sourceforge URLs, which I am significantly happier with now that I realized we can omit /download
+	"sourceforge.net/projects/pcre/files/pcre/[^/]+",
 	"downloads.sourceforge.net/sevenzip",
-	"sourceforge.net/projects/juliadeps-win/files/[^/]+/download",
+	"sourceforge.net/projects/juliadeps-win/files",
 ]
 
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
 def regexify(url):
-	# I hate sourceforge a little more every day
-	if url.startswith("sourceforge"):
-		return r"^https?://(www\.)?" + url.replace(r".", r"\.")
-	else:
-		return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+	# Add http://, with optional https and www. in front.  Then, replace all dots within the plain
+	# regex string with escaped dots, and finally add the actual filename pattern at the end.
+	return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
 		
 whitelist = map(regexify, whitelist)
 
@@ -206,16 +204,18 @@ def sizefmt(num, suffix='B'):
 def cache(url):
 	global aws_cache
 
+	# If this is a sourceforge url, and we're asking for something that ends in /download, get
+	# rid of it; it's not necessary, and we can roll without it.  We also don't mind redirecting
+	# users to URLs without /download, even if we don't cache it at all.
+	if "sourceforge" in url and url[-9:] == "/download":
+		url = url[:-9]
+
 	# Ensure this URL is something we want to touch and if it's not, send them on their merry way
 	if not any([re.match(white_url, url) for white_url in whitelist]):
 		print "Rejecting %s because it's not on the list"%(url)
 		return redirect(url, code=301)
 
-	# Take basename for storage purposes, dealing with various oddities where we can:
-	if "sourceforge" in url and basename(url) == "download":
-		# I'M LOOKING AT YOU, SOURCEFORGE
-		name = basename(dirname(url))
-	elif "github" in url and (basename(dirname(url)) in ["archive", "tarball"]):
+	if "github" in url and (basename(dirname(url)) in ["archive", "tarball"]):
 		name = basename(dirname(dirname(url))) + "-" + basename(url)
 	else:
 		name = basename(url)
