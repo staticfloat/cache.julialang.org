@@ -212,7 +212,7 @@ def cache(url):
 
 	# Take basename for storage purposes, dealing with various oddities where we can:
 	if "sourceforge" in url and basename(url) == "download":
-		# I'M LOOING AT YOU, SOURCEFORGE
+		# I'M LOOKING AT YOU, SOURCEFORGE
 		name = basename(dirname(url))
 	elif "github" in url and (basename(dirname(url)) in ["archive", "tarball"]):
 		name = basename(dirname(dirname(url))) + "-" + basename(url)
