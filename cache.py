@@ -47,6 +47,7 @@ whitelist = [
 	# You're naughty, so you get to sit in the corner, away from the other URLs
 	"sourceforge.net/projects/pcre/files/pcre/[^/]+/[^/]+/download",
 	"downloads.sourceforge.net/sevenzip",
+	"sourceforge.net/projects/juliadeps-win/files/[^/]+/download",
 ]
 
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
