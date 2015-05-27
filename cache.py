@@ -38,6 +38,7 @@ whitelist = [
 	"fftw.org",
 	"unsis.googlecode.com/files",
 	"intgat.tigress.co.uk/rmy/files/busybox",
+	"frippery.org/files/busybox",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
