@@ -5,6 +5,17 @@ from os.path import dirname, basename
 app = Flask(__name__)
 app.debug = True
 
+# Let's unbuffer sys.stdout so that when we print out debugging messages, they appear immediately
+class Unbuffered(object):
+   def __init__(self, stream):
+       self.stream = stream
+   def write(self, data):
+       self.stream.write(data)
+       self.stream.flush()
+   def __getattr__(self, attr):
+       return getattr(self.stream, attr)
+sys.stdout = Unbuffered(sys.stdout)
+
 # This is the list of files we have successfully cached in the past and can spit out immediately
 # We will cache information about each cached file as well, such as its SHA, etc...
 aws_cache = {}
