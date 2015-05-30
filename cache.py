@@ -3,6 +3,7 @@ from flask import Flask, redirect
 import os, urllib, thread, boto, re, sys, httplib2
 from os.path import dirname, basename
 app = Flask(__name__)
+app.debug = True
 
 # This is the list of files we have successfully cached in the past and can spit out immediately
 # We will cache information about each cached file as well, such as its SHA, etc...
@@ -242,7 +243,7 @@ def cache(url):
 			# Otherwise, let's give a little debugging output to show this is working properly
 			print "[%s] Successfully validated ETAG"%(name)
 		except:
-			print "[%s] Error while trying to validate ETAG, serving cached file"
+			print "[%s] Error while trying to validate ETAG, serving cached file"%(name)
 
 	# Now forward them onto the proxy, permanently
 	return redirect("https://juliacache.s3.amazonaws.com/"+name, code=301)
