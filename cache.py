@@ -51,6 +51,7 @@ whitelist = [
 	"unsis.googlecode.com/files",
 	"intgat.tigress.co.uk/rmy/files/busybox",
 	"frippery.org/files/busybox",
+	"ftp.csx.cam.ac.uk/pub/software/programming/pcre",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
@@ -67,7 +68,7 @@ whitelist = [
 def regexify(url):
 	# Add http://, with optional https and www. in front.  Then, replace all dots within the plain
 	# regex string with escaped dots, and finally add the actual filename pattern at the end.
-	return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+	return r"(^ht)|(^f)tps?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
 		
 whitelist = map(regexify, whitelist)
 
