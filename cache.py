@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, redirect
+from flask import Flask, redirect, abort
 import os, urllib, thread, boto, re, sys, httplib2
 from os.path import dirname, basename
 app = Flask(__name__)
@@ -62,6 +62,11 @@ whitelist = [
 	"sourceforge.net/projects/pcre/files/pcre/[^/]+",
 	"downloads.sourceforge.net/sevenzip",
 	"sourceforge.net/projects/juliadeps-win/files",
+]
+
+# A list of regexes (that are NOT passed through regexify) that we reject out of hand
+blacklist = [
+	"/favicon.ico",
 ]
 
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
@@ -224,9 +229,13 @@ def cache(url):
 	if "sourceforge" in url and url[-9:] == "/download":
 		url = url[:-9]
 
+	if any([re.match(black_url, url) for black_url in blacklist]):
+		print "404'ing %s because it's on the blacklist"%(url)
+		abort(404)
+
 	# Ensure this URL is something we want to touch and if it's not, send them on their merry way
 	if not any([re.match(white_url, url) for white_url in whitelist]):
-		print "Rejecting %s because it's not on the list"%(url)
+		print "301'ing %s to canonical URL because it's not on the whitelist"%(url)
 		return redirect(url, code=301)
 
 	if "github" in url and (basename(dirname(url)) in ["archive", "tarball"]):
