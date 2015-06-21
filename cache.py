@@ -3,7 +3,6 @@ from flask import Flask, redirect, abort
 import os, urllib, thread, boto, re, sys, httplib2
 from os.path import dirname, basename
 app = Flask(__name__)
-app.debug = True
 
 # Let's unbuffer sys.stdout so that when we print out debugging messages, they appear immediately
 class Unbuffered(object):
