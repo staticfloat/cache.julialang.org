@@ -140,7 +140,7 @@ def add_to_cache(url, name):
 		
 
 def remove_from_cache(name):
-	print "Removing %s from cache"%(name)
+	print "[%s] Removing from cache"%(name)
 	del aws_cache[name]
 
 	# Login to S3
@@ -255,7 +255,7 @@ def cache(url):
 		try:
 			current_etag = probe_etag(url)
 			if current_etag != aws_cache[name]["etag"]:
-				print "[%s] ETAG has changed for! Old: %s, New: %s\n"%(name, aws_cache[name]["etag"], current_etag)
+				print "[%s] ETAG changed! Old: %s, New: %s"%(name, aws_cache[name]["etag"], current_etag)
 				remove_from_cache(name)
 				thread.start_new_thread(add_to_cache, (url,name))
 				return redirect(url, code=302)
