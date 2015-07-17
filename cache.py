@@ -39,6 +39,7 @@ whitelist = [
 	"api.github.com/repos/[^/]+/[^/]+/tarball",
 	"gmplib.org/download/gmp",
 	"mpfr.org/mpfr-current",
+	"mpfr.org/mpfr-[\d\.]+",
 	"nixos.org/releases/patchelf/patchelf-[\d\.]+",
 	"kernel.org/pub/software/scm/git",
 	"pypi.python.org/packages/source/v/virtualenv",
