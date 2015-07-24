@@ -53,6 +53,7 @@ whitelist = [
 	"frippery.org/files/busybox",
 	"ftp.csx.cam.ac.uk/pub/software/programming/pcre",
 	"bintray.com/artifact/download/[^/]+/generic",
+	"imagemagick.org/download/binaries",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
