@@ -69,7 +69,7 @@ whitelist = [
 # A list of regexes (that are NOT passed through regexify) that we reject out of hand
 blacklist = [
 	"favicon.ico",
-	"repomd.xml",
+	".*/repomd.xml",
 ]
 
 # Take a stripped-down URL and add all the regex stuff to make it something we'd have dinner with
