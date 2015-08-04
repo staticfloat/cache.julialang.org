@@ -286,7 +286,7 @@ def cache(url):
 			print "[%s] Error while trying to validate ETAG, serving cached file"%(name)
 
 	# Now forward them onto the proxy, permanently.
-	return redirect("https://juliacache.s3.amazonaws.com/", code=301)
+	return redirect("https://juliacache.s3.amazonaws.com/"+name, code=301)
 
 
 # First thing we do is rebuild the cache:
