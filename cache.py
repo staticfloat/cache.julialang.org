@@ -69,6 +69,11 @@ whitelist = [
 # A list of regexes (that are NOT passed through regexify) that we reject out of hand
 blacklist = [
 	"favicon.ico",
+]
+
+# A list of regexes (that are NOT passed through regexify) that we refuse to cache,
+# acts as a special exclusion list when we need something that would otherwise be matched by the whitelist
+greylist = [
 	".*/repomd.xml",
 ]
 
@@ -241,6 +246,11 @@ def cache(url):
 	if any([re.match(black_url, url) for black_url in blacklist]):
 		print "404'ing %s because it's on the blacklist"%(url)
 		abort(404)
+
+	# If it's on the greylist, just forward them on right now
+	if any([re.match(grey_url, url) for grey_url in greylist]):
+		print "301'ing %s to canonical URL because it's on the greylist"%(url)
+		return redirect(url, code=301)
 
 	# Ensure this URL is something we want to touch and if it's not, send them on their merry way
 	if not any([re.match(white_url, url) for white_url in whitelist]):
