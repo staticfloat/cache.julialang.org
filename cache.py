@@ -114,14 +114,15 @@ def add_to_cache(url, name):
 		conn = boto.connect_s3()
 		bucket = conn.get_bucket("juliacache")
 
+		# Store the file to S3, but replace '+'' characters with ' '
 		k = boto.s3.key.Key(bucket)
-		k.key = name
+		k.key = name.replace('+', ' ')
 		k.set_contents_from_filename(tmp_name)
 		k.set_acl('public-read')
 		k.close()
 
 		# Finally, add this name into our aws_cache, and remove it from pending_cache
-		k = bucket.get_key(name)
+		k = bucket.get_key(k.key)
 
 		# Remember that the etag give to us by S3 is _not_ the same as the .etag file we store
 		aws_cache[name] = {"MD5":k.etag, "size":filesize, "modified":k.last_modified}
@@ -193,6 +194,11 @@ def rebuild_cache():
 			else:
 				print "WARN: etag found for non-existant file %s"%(k.name[:-5])
 		else:
+			# First, we must undo any '+'' symbol madness that has gone on.  Note that a proper HTTP
+			# URL should never have a ' ' in it naturally; they should all be escaped as '%20', so
+			# these will all be former '+' characters, and it's safe to do a replace like this
+			k.name = k.name.replace(' ', '+')
+
 			# If we've never seen this guy before, initialize him, otherwise, copy from aws_cache
 			if not k.name in aws_cache:
 				new_aws_cache[k.name] = {}
@@ -269,8 +275,8 @@ def cache(url):
 		except:
 			print "[%s] Error while trying to validate ETAG, serving cached file"%(name)
 
-	# Now forward them onto the proxy, permanently.  Note that we must map `+` to ` ` to appease S3
-	return redirect("https://juliacache.s3.amazonaws.com/"+name.replace('+', ' '), code=301)
+	# Now forward them onto the proxy, permanently.
+	return redirect("https://juliacache.s3.amazonaws.com/", code=301)
 
 
 # First thing we do is rebuild the cache:
