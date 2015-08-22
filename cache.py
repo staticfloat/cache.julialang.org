@@ -169,7 +169,7 @@ def probe_etag(url):
 	if not "codeload" in url:
 		url.replace("/github.com/", "/codeload.github.com/")
 
-	h = httplib2.Http()
+	h = httplib2.Http(timeout=1)
 	resp = h.request(url, 'HEAD')[0]
 	return resp["etag"].strip('"')
 
