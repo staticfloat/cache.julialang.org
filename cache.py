@@ -64,6 +64,9 @@ whitelist = [
 	"sourceforge.net/projects/pcre/files/pcre/[^/]+",
 	"downloads.sourceforge.net/sevenzip",
 	"sourceforge.net/projects/juliadeps-win/files",
+
+	# DLL file ZIPs for mbedTLS
+	"malmaud.github.io",
 ]
 
 # A list of regexes (that are NOT passed through regexify) that we reject out of hand
