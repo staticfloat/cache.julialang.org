@@ -66,7 +66,7 @@ whitelist = [
 	"sourceforge.net/projects/juliadeps-win/files",
 
 	# DLL file ZIPs for mbedTLS
-	"malmaud.github.io",
+	"malmaud.github.io/files",
 ]
 
 # A list of regexes (that are NOT passed through regexify) that we reject out of hand
