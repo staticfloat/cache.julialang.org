@@ -54,6 +54,7 @@ whitelist = [
 	"ftp.csx.cam.ac.uk/pub/software/programming/pcre",
 	"bintray.com/artifact/download/[^/]+/generic",
 	"imagemagick.org/download/binaries",
+	"tls.mbed.org/download",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
