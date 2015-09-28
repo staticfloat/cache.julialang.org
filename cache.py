@@ -55,6 +55,7 @@ whitelist = [
 	"bintray.com/artifact/download/[^/]+/generic",
 	"imagemagick.org/download/binaries",
 	"tls.mbed.org/download",
+	"thrysoee.dk/editline",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
