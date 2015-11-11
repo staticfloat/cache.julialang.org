@@ -192,7 +192,7 @@ def rebuild_cache():
 
 	# This is the new dictionary we'll use to build up our cache
 	new_aws_cache = {}
-	all_keys = bucket.get_all_keys()
+	all_keys = [key for key in bucket.list()]
 	all_keys.sort()
 	for k in all_keys:
 		# First, check to see if this is an .etag file.  If it is, load in the .etag goodness
