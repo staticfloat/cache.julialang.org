@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 from flask import Flask, redirect, abort
-import os, urllib, thread, boto, re, sys, httplib2
+import os, urllib, thread, boto, re, sys, httplib2, time, traceback
+from datetime import datetime
 from os.path import dirname, basename
 app = Flask(__name__)
 
 # Let's unbuffer sys.stdout so that when we print out debugging messages, they appear immediately
 class Unbuffered(object):
    def __init__(self, stream):
-       self.stream = stream
+	   self.stream = stream
    def write(self, data):
-       self.stream.write(data)
-       self.stream.flush()
+	   self.stream.write(data)
+	   self.stream.flush()
    def __getattr__(self, attr):
-       return getattr(self.stream, attr)
+	   return getattr(self.stream, attr)
 sys.stdout = Unbuffered(sys.stdout)
 
 # This is the list of files we have successfully cached in the past and can spit out immediately
@@ -87,14 +88,14 @@ def regexify(url):
 	# Add http://, with optional https and www. in front.  Then, replace all dots within the plain
 	# regex string with escaped dots, and finally add the actual filename pattern at the end.
 	return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
-		
+
 whitelist = map(regexify, whitelist)
 
 
 # urllib.urlretrieve() doesn't throw errors on 404 by default
 class WhyOhWhyDontYouThrowErrorsUrlretrieve(urllib.FancyURLopener):
   def http_error_default(self, url, fp, errcode, errmsg, headers):
-    urllib.URLopener.http_error_default(self, url, fp, errcode, errmsg, headers)
+	urllib.URLopener.http_error_default(self, url, fp, errcode, errmsg, headers)
 
 def add_to_cache(url, name):
 	global pending_cache, aws_cache
@@ -118,8 +119,6 @@ def add_to_cache(url, name):
 
 		print "[%s] Finished download: %s (%d bytes)"%(name, tmp_name, filesize)
 
-		# Upload it to AWS and cleanup the temporary file
-		print "[%s] Starting upload"%(name)
 		# Login to S3
 		conn = boto.connect_s3()
 		bucket = conn.get_bucket("juliacache")
@@ -135,7 +134,7 @@ def add_to_cache(url, name):
 		k = bucket.get_key(k.key)
 
 		# Remember that the etag give to us by S3 is _not_ the same as the .etag file we store
-		aws_cache[name] = {"MD5":k.etag, "size":filesize, "modified":k.last_modified}
+		aws_cache[name] = {"MD5":k.etag, "size":filesize, "modified": boto.utils.parse_ts(k.last_modified)}
 
 		# If the server gives us an etag, store that in its own file as well
 		if "etag" in headers:
@@ -152,7 +151,7 @@ def add_to_cache(url, name):
 		# If we got a 404, clean up
 		print "[%s] 404, halting"%(name)
 		pending_cache.remove(name)
-		
+
 
 def remove_from_cache(name):
 	print "[%s] Removing from cache"%(name)
@@ -167,8 +166,9 @@ def remove_from_cache(name):
 	bucket.delete_key(name + ".etag")
 
 
-# Do a HEAD request for the file, getting the etag header
-def probe_etag(url):
+# Do a HEAD request for the file, getting the ETag and Last-Modified headers,
+# returning None for either if we can't get those headers
+def probe_etag_and_modified(url):
 	# If we're dealing with github, we need to ask codeload to avoid downloading the
 	# entire file again.  I think this might be a bug in how python handles redirects
 	if not "codeload" in url:
@@ -176,8 +176,16 @@ def probe_etag(url):
 
 	h = httplib2.Http(timeout=1)
 	resp = h.request(url, 'HEAD')[0]
-	return resp["etag"].strip('"')
 
+	etag = None
+	if "etag" in resp:
+		etag = resp["etag"].strip('"')
+
+	last_modified = None
+	if "last-modified" in resp:
+		last_modified = datetime.strptime(resp["last-modified"], "%a, %d %b %Y %H:%M:%S %Z")
+
+	return etag, last_modified
 
 # This queries AWS, looks at every file, if we already knew about that file and the
 # last_modified date is != our cached last_modified date, assume we know what we're
@@ -192,50 +200,89 @@ def rebuild_cache():
 
 	# This is the new dictionary we'll use to build up our cache
 	new_aws_cache = {}
-	all_keys = [key for key in bucket.list()]
-	all_keys.sort()
-	for k in all_keys:
-		# First, check to see if this is an .etag file.  If it is, load in the .etag goodness
-		if k.name[-5:] == ".etag" and k.name[:-5] in new_aws_cache:
-			if k.name[:-5] in new_aws_cache:
-				etag = k.get_contents_as_string()
-				new_aws_cache[k.name[:-5]]["etag"] = etag
-				print "Loaded etag for %s: %s"%(k.name[:-5], etag)
-			else:
-				print "WARN: etag found for non-existant file %s"%(k.name[:-5])
+	sorted_keys = [key for key in bucket.list()]
+	sorted_keys.sort(key=lambda x: x.name)
+
+	# Iterate over all the non-etag files
+	for k in [k for k in sorted_keys if k.name[-5:] != ".etag"]:
+		# First, we must undo any '+'' symbol madness that has gone on.  Note that a proper HTTP
+		# URL should never have a ' ' in it naturally; they should all be escaped as '%20', so
+		# these will all be former '+' characters, and it's safe to do a replace like this
+		k.name = k.name.replace(' ', '+')
+
+		# If we've never seen this guy before, initialize him, otherwise, copy from aws_cache
+		if not k.name in aws_cache:
+			new_aws_cache[k.name] = {}
 		else:
-			# First, we must undo any '+'' symbol madness that has gone on.  Note that a proper HTTP
-			# URL should never have a ' ' in it naturally; they should all be escaped as '%20', so
-			# these will all be former '+' characters, and it's safe to do a replace like this
-			k.name = k.name.replace(' ', '+')
+			new_aws_cache[k.name] = aws_cache[k.name]
 
-			# If we've never seen this guy before, initialize him, otherwise, copy from aws_cache
-			if not k.name in aws_cache:
-				new_aws_cache[k.name] = {}
-			else:
-				new_aws_cache[k.name] = aws_cache[k.name]
+		# If we've never seen this filename before, (e.g. we just initialized it above)
+		# OR the file has been modified since we last looked in, then download metadata for this file
+		if not "modified" in new_aws_cache[k.name] or new_aws_cache[k.name]["modified"] != k.last_modified:
+			# Remember that the etag that comes from S3 is _not_ the same as the .etag we store!
+			new_aws_cache[k.name]["MD5"] = k.etag
+			new_aws_cache[k.name]["modified"] = boto.utils.parse_ts(k.last_modified)
+			new_aws_cache[k.name]["size"] = k.size
 
-			# If we've never seen this filename before, (e.g. we just initialized it above)
-			# OR the file has been modified since we last looked in, then download metadata for this file
-			if not "modified" in new_aws_cache[k.name] or new_aws_cache[k.name]["modified"] != k.last_modified:
-				# Remember that the etag that comes from S3 is _not_ the same as the .etag we store!
-				new_aws_cache[k.name]["MD5"] = k.etag
-				new_aws_cache[k.name]["modified"] = k.last_modified
-				new_aws_cache[k.name]["size"] = k.size
-
+		# If we have an etag for this file, then load it in:
+		etag_keys = [z for z in sorted_keys if z.name == (k.name + ".etag")]
+		if len(etag_keys):
+			etag = etag_keys[0].get_contents_as_string()
+			new_aws_cache[k.name]["etag"] = etag
+			print "Loaded %s with etag: %s"%(k.name, etag)
+		else:
+			print "Loaded %s"%(k.name)
 
 	print "Done rebuilding, with %d cached files"%(len(new_aws_cache))
 	# Finally, move new_aws_cache over to aws_cache, effectively clearing out old stuff
 	aws_cache = new_aws_cache
 
 
-# Fancyness!  Adapted from http://goo.gl/FrdBC0
-def sizefmt(num, suffix='B'):
-    for unit in ['','K','M','G','T','P','E','Z']:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, 'Y', suffix)
+def check_consistency(url, name):
+	global aws_cache
+
+	# If we already have the file, we can quickly double-check that the
+	# file we have cached is still consistent by checking ETag/Last-Modified times
+	try:
+		etag, last_modified = probe_etag_and_modified(url)
+	except:
+		# If we run into an error during probe_etag_and_modified(), we serve our
+		# cached file to continue serving while the source server is offline, etc...
+		print "[%s] Error while trying to check consistency, serving cached file"%(name)
+		traceback.print_exc()
+		return True
+
+	# Do we have a stored ETag?
+	if "etag" in aws_cache[name]:
+		if etag is None:
+			# We have a stored etag, but we didn't get one from the server.  Suspicious.  Move on to last-modified.
+			print "[%s] ETag unavailable despite previous ETag record, continuing to Last-Modified"%(name)
+		else:
+			if etag != aws_cache[name]["etag"]:
+				# We have a stored etag, and we got one from the server, but they didn't match.  Ring the alarm bells.
+				print "[%s] ETag changed! Old: %s, New: %s"%(name, aws_cache[name]["etag"], current_etag)
+				return False
+
+			# We have a stored etag, and we got one from the server, and they matched.  That's good enough for us.
+			print "[%s] Successfully validated ETag"%(name)
+			return True
+
+	# Do we have a last-modified date stored?
+	if "modified" in aws_cache[name]:
+		if last_modified is None:
+			print "[%s] Last-Modified unavailable, serving cached file"%(name)
+			return True
+		else:
+			if last_modified > aws_cache[name]["modified"]:
+				print "[%s] Last-Modified out of date! Old: %s, New: %s"%(name, str(aws_cache[name]["modified"]), str(last_modified))
+				return False
+			else:
+				print "[%s] Successfully validated Last-Modified"%(name)
+				return True
+
+	# By default, just serve the cached stuff
+	return True
+
 
 # Asking for a full URL after <path:url> queries the cache
 @app.route("/<path:url>")
@@ -267,31 +314,32 @@ def cache(url):
 	else:
 		name = basename(url)
 
-	
+
 	# Search for `name` in the cache already.  If it's not there, we need to upload it.
 	if not name in aws_cache:
 		# Start a thread downloading, but return immediately pointing the user to the original URL
 		thread.start_new_thread(add_to_cache, (url,name))
 		return redirect(url, code=302)
 
-	# If we already have the file, but it's a github URL, we can really quickly double-check that the
-	# file we have cached is still okay; (This prevents against people moving tags, etc...)
-	if "etag" in aws_cache[name]:
-		try:
-			current_etag = probe_etag(url)
-			if current_etag != aws_cache[name]["etag"]:
-				print "[%s] ETAG changed! Old: %s, New: %s"%(name, aws_cache[name]["etag"], current_etag)
-				remove_from_cache(name)
-				thread.start_new_thread(add_to_cache, (url,name))
-				return redirect(url, code=302)
-
-			# Otherwise, let's give a little debugging output to show this is working properly
-			print "[%s] Successfully validated ETAG"%(name)
-		except:
-			print "[%s] Error while trying to validate ETAG, serving cached file"%(name)
+	# If we fail our consistency check, then redownload the file
+	if not check_consistency(url, name):
+		remove_from_cache(name)
+		thread.start_new_thread(add_to_cache, (url,name))
+		return redirect(url, code=302)
 
 	# Now forward them onto the proxy, permanently.
 	return redirect("https://juliacache.s3.amazonaws.com/"+name, code=301)
+
+# Fancyness!  Adapted from http://goo.gl/FrdBC0
+def sizefmt(num, suffix='B'):
+	for unit in ['','K','M','G','T','P','E','Z']:
+		if abs(num) < 1024.0:
+			return "%3.1f%s%s" % (num, unit, suffix)
+		num /= 1024.0
+	return "%.1f%s%s" % (num, 'Y', suffix)
+
+
+
 
 
 # First thing we do is rebuild the cache:
@@ -308,13 +356,11 @@ def index():
 		html += "<tr>"
 		html += "<td><b>%s</b></td>"%(k)
 		html += "<td style=\"padding-right: 15px;\">MD5: <b>%s</b></td>"%(aws_cache[k]["MD5"])
-		# boto y u have two different time formats?!
-		modified = boto.utils.parse_ts(aws_cache[k]["modified"]).isoformat()
-		html += "<td style=\"padding-right: 15px;\">Modified: <b>%s</b></td>\n"%(modified)
+		html += "<td style=\"padding-right: 15px;\">Modified: <b>%s</b></td>\n"%(str(aws_cache[k]["modified"]))
 		html += "<td style=\"padding-right: 15px;\">Size: <b>%s</b></td>\n"%(sizefmt(aws_cache[k]["size"]))
 		html += "<td>"
 		if "etag" in aws_cache[k]:
-			html += "ETAG: <b>%s</b>"%(aws_cache[k]["etag"])
+			html += "ETag: <b>%s</b>"%(aws_cache[k]["etag"])
 		html += "</td>"
 		html += "</tr>"
 
