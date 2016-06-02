@@ -170,15 +170,12 @@ def remove_from_cache(name):
 # Do a HEAD request for the file, getting the ETag and Last-Modified headers,
 # returning None for either if we can't get those headers
 def probe_etag_and_modified(url):
-	# If we're dealing with github, we need to ask codeload to avoid downloading the
-	# entire file again.  I think this might be a bug in how python handles redirects
-	if not "codeload" in url:
-		url.replace("/github.com/", "/codeload.github.com/")
-
+	# Get a HEAD of the remote resource, failing out if it's not an HTTP 200 OK
 	resp = requests.head(url, timeout=1, allow_redirects=True)
 	if resp.status_code != 200:
-		return None, None
+		raise ValueError("Got code %d instead of 200; perhaps this is a bad URL?"%(resp.status_code))
 
+	# Grab the headers and inspect them for an ETag or Last-Modified entry
 	headers = resp.headers
 
 	etag = None
