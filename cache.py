@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from flask import Flask, redirect, abort
-import os, urllib, thread, boto, re, sys, httplib2, time, traceback
+import os, urllib, thread, boto, re, sys, time, traceback, requests
 from datetime import datetime
 from os.path import dirname, basename
 app = Flask(__name__)
@@ -69,7 +69,7 @@ whitelist = [
 	"sourceforge.net/projects/juliadeps-win/files",
 
 	# DLL file ZIPs for mbedTLS
-    "api.github.com/repos/malmaud/malmaud.github.io/contents/files",
+	"api.github.com/repos/malmaud/malmaud.github.io/contents/files",
 	"malmaud.github.io/files",
 ]
 
@@ -175,16 +175,19 @@ def probe_etag_and_modified(url):
 	if not "codeload" in url:
 		url.replace("/github.com/", "/codeload.github.com/")
 
-	h = httplib2.Http(timeout=1)
-	resp = h.request(url, 'HEAD')[0]
+	resp = requests.head(url, timeout=1, allow_redirects=True)
+	if resp.status_code != 200:
+		return None, None
+
+	headers = resp.headers
 
 	etag = None
-	if "etag" in resp:
-		etag = resp["etag"].strip('"')
+	if "etag" in headers:
+		etag = headers["etag"].strip('"')
 
 	last_modified = None
-	if "last-modified" in resp:
-		last_modified = datetime.strptime(resp["last-modified"], "%a, %d %b %Y %H:%M:%S %Z")
+	if "last-modified" in headers:
+		last_modified = datetime.strptime(headers["last-modified"], "%a, %d %b %Y %H:%M:%S %Z")
 
 	return etag, last_modified
 
