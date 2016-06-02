@@ -69,6 +69,7 @@ whitelist = [
 	"sourceforge.net/projects/juliadeps-win/files",
 
 	# DLL file ZIPs for mbedTLS
+    "api.github.com/repos/malmaud/malmaud.github.io/contents/files",
 	"malmaud.github.io/files",
 ]
 
