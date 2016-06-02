@@ -261,7 +261,7 @@ def check_consistency(url, name):
 		else:
 			if etag != aws_cache[name]["etag"]:
 				# We have a stored etag, and we got one from the server, but they didn't match.  Ring the alarm bells.
-				print "[%s] ETag changed! Old: %s, New: %s"%(name, aws_cache[name]["etag"], current_etag)
+				print "[%s] ETag changed! Old: %s, New: %s"%(name, aws_cache[name]["etag"], etag)
 				return False
 
 			# We have a stored etag, and we got one from the server, and they matched.  That's good enough for us.
