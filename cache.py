@@ -112,6 +112,13 @@ def add_to_cache(url, name):
 		opener = WhyOhWhyDontYouThrowErrorsUrlretrieve()
 		tmp_name, headers = opener.retrieve(url)
 
+        # Be on the lookout for false downloads from SourceForge!
+        if "content-type" in headers and headers["content-type"] == "text/html":
+            print "[%s] Aborting download since we got text/html back!"%(name)
+            pending_cache.remove(name)
+            return
+
+
 		# If nothing was downloaded, just exit out after cleaning up
 		filesize = os.stat(tmp_name).st_size
 		if filesize == 0:
