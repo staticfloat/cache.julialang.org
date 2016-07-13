@@ -121,11 +121,12 @@ def add_to_cache(url, name):
 
 		# If nothing was downloaded, just exit out after cleaning up
 		filesize = os.stat(tmp_name).st_size
-		if filesize == 0:
+		if filesize < 1024:
+            print "[%s] Aborting download as filesize was <1k (%d)"%(name, filesize)
 			pending_cache.remove(name)
 			return
 
-		print "[%s] Finished download: %s (%d bytes)"%(name, tmp_name, filesize)
+		print "[%s] Successfully finished download: %s (%d bytes)"%(name, tmp_name, filesize)
 
 		# Login to S3
 		conn = boto.connect_s3()
