@@ -186,7 +186,12 @@ def probe_etag_and_modified(url):
 	if "last-modified" in headers:
 		last_modified = datetime.strptime(headers["last-modified"], "%a, %d %b %Y %H:%M:%S %Z")
 
-	return etag, last_modified
+	# We're also going to look for a content-type header
+	content_type = None
+	if "content-type" in headers:
+		content_type = headers["content-type"]
+
+	return etag, last_modified, content_type
 
 # This queries AWS, looks at every file, if we already knew about that file and the
 # last_modified date is != our cached last_modified date, assume we know what we're
@@ -245,12 +250,17 @@ def check_consistency(url, name):
 	# If we already have the file, we can quickly double-check that the
 	# file we have cached is still consistent by checking ETag/Last-Modified times
 	try:
-		etag, last_modified = probe_etag_and_modified(url)
+		etag, last_modified, content_type = probe_etag_and_modified(url)
 	except:
 		# If we run into an error during probe_etag_and_modified(), we serve our
 		# cached file to continue serving while the source server is offline, etc...
 		print "[%s] Error while trying to check consistency, serving cached file"%(name)
 		traceback.print_exc()
+		return True
+
+	# If the content_type is "text/html", just return "True" since some sites (I'M LOOKING AT YOU
+	# SOURCEFORGE) will give back what looks like a normal response, but is, in fact, an error page.
+	if content_type == "text/html":
 		return True
 
 	# Do we have a stored ETag?
