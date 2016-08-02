@@ -57,6 +57,7 @@ whitelist = [
 	"imagemagick.org/download/binaries",
 	"tls.mbed.org/download",
 	"thrysoee.dk/editline",
+	"ftp.atnf.csiro.au/pub/software/wcslib",
 
 	# Add unicode fonts for libutf8
 	"unicode.org/Public/UCD/latest/ucd/auxiliary",
