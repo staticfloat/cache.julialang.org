@@ -89,7 +89,7 @@ greylist = [
 def regexify(url):
 	# Add http://, with optional https and www. in front.  Then, replace all dots within the plain
 	# regex string with escaped dots, and finally add the actual filename pattern at the end.
-	return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+	return r"^(https?)|(ftp)://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
 
 whitelist = map(regexify, whitelist)
 
@@ -255,6 +255,10 @@ def rebuild_cache():
 
 def check_consistency(url, name):
 	global aws_cache
+
+        if url.startswith("ftp://"):
+                print "[%s] ftp:// urls cannot perform consistency checks, serving cached file"%(name)
+                return True
 
 	# If we already have the file, we can quickly double-check that the
 	# file we have cached is still consistent by checking ETag/Last-Modified times
