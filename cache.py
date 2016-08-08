@@ -89,7 +89,7 @@ greylist = [
 def regexify(url):
 	# Add http://, with optional https and www. in front.  Then, replace all dots within the plain
 	# regex string with escaped dots, and finally add the actual filename pattern at the end.
-	return r"^https?://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+	return r"^(https?)|(ftp)://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
 
 whitelist = map(regexify, whitelist)
 
