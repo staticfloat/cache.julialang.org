@@ -256,6 +256,10 @@ def rebuild_cache():
 def check_consistency(url, name):
 	global aws_cache
 
+        if url.startswith("ftp://"):
+                print "[%s] ftp:// urls cannot perform consistency checks, serving cached file"%(name)
+                return True
+
 	# If we already have the file, we can quickly double-check that the
 	# file we have cached is still consistent by checking ETag/Last-Modified times
 	try:
