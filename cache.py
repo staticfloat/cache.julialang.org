@@ -72,6 +72,9 @@ whitelist = [
 	# DLL file ZIPs for mbedTLS
 	"api.github.com/repos/malmaud/malmaud.github.io/contents/files",
 	"malmaud.github.io/files",
+
+    # CMake binaries for JuliaLang/julia#19632
+    "cmake.org/files/v[0-9\.]+",
 ]
 
 # A list of regexes (that are NOT passed through regexify) that we reject out of hand
