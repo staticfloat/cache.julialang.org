@@ -1,0 +1,23 @@
+version: '2.1'
+services:
+    frontend:
+        restart: unless-stopped
+        build: frontend
+        ports:
+            - 80:80/tcp
+            - 443:443/tcp
+        environment:
+            - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+        depends_on:
+            - cache
+
+    cache:
+        restart: unless-stopped
+        build:
+            context: cache
+            args:
+                - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+                - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+
+        expose:
+            - 5000
