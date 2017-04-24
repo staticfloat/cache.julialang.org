@@ -475,7 +475,7 @@ def index():
         html += "] <b>%s</b>"%(ellipsize(name, 35))
         html += "</td>"
         html += "<td>"
-        html += "MD5:<br/><b>%s...%s</b></td>"%(entry.md5[:8], entry.md5[-8:])
+        html += "MD5:<br/><b>%s...</b></td>"%(entry.md5[:16])
         html += "<td>"
         html += "Modified:<br/><b>%s</b></td>\n"%(str(entry.modified))
         html += "<td>"
