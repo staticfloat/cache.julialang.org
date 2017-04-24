@@ -548,7 +548,7 @@ def index():
     html += "totalling <b>%s</b>:"%(sizefmt(total_size))
     html += "<br/><br/>"
     html += "<table style=\"font-family: monospace;\">"
-    URLs = sorted(aws_cache.cache.keys())
+    URLs = sorted(aws_cache.cache.keys(), key=lambda k: aws_cache.cache[k].name)
     for url in URLs:
         name = url_name(url)
         entry = aws_cache.hit(url)
