@@ -213,6 +213,9 @@ class AWSCache:
         # This is the new dictionary we'll use to build up our cache
         new_cache = {}
 
+        # Let's keep track of how long it takes to do this
+        start_time = time.time()
+
         # List all our files
         bucket = self.s3.Bucket(self.bucket_name)
         objs = sorted(list(bucket.objects.all()), key = lambda o: o.key)
@@ -228,8 +231,9 @@ class AWSCache:
                 traceback.print_exc()
                 pass
 
-        # Finally, move new_aws_cache over to aws_cache, clearing out old stuff
-        log("Cache rebuild finished")
+        # Finally, move new_cache over to self.cache, clearing out old stuff,
+        # and not disrupting our uptime one iota
+        log("Cache rebuild finished in %.1fs"%(time.time() - start_time))
         self.cache = new_cache
 
     """
@@ -548,7 +552,9 @@ def index():
     html += "totalling <b>%s</b>:"%(sizefmt(total_size))
     html += "<br/><br/>"
     html += "<table style=\"font-family: monospace;\">"
-    URLs = sorted(aws_cache.cache.keys(), key=lambda k: aws_cache.cache[k].name)
+
+    lower_name = lambda url: aws_cache.cache[url].name.lower()
+    URLs = sorted(aws_cache.cache.keys(), key = lambda url: lower_name(url))
     for url in URLs:
         name = url_name(url)
         entry = aws_cache.hit(url)
