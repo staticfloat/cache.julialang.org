@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 from flask import Flask, redirect, abort
 import tempfile
-import os, urllib, _thread, boto3, re, sys, time, traceback, json, requests
+import os, urllib, _thread, boto3, re, sys, time, traceback, json
 from datetime import datetime
+from dateutil.tz import tzutc
 from os.path import dirname, basename
 import logging
 from logging.handlers import RotatingFileHandler
@@ -10,14 +11,36 @@ from logging.handlers import RotatingFileHandler
 app = Flask(__name__)
 
 # Save logs of size 100MB, rotating out 30 of them
-def init_logging(app, level=logging.INFO):
-    if not os.path.isdir('/var/log/cache'):
-        os.makedirs('/var/log/cache')
-    handler = RotatingFileHandler('/var/log/cache/cache.log',
-                                  maxBytes=100000000, backupCount=30)
-    app.logger.addHandler(logging.StreamHandler())
-    app.logger.setLevel(level)
-    app.logger.addHandler(handler)
+def init_logging(app, logdir='/var/log/cache'):
+    if not os.path.isdir(logdir):
+        os.makedirs(logdir)
+    # We set the top logger to INFO so that all necessary messages are processed
+    app.logger.setLevel(logging.INFO)
+
+    # This is where we'll store all the messages
+    all_path = logdir + '/cache.log'
+    all_handler = RotatingFileHandler(all_path, maxBytes=1e8, backupCount=30)
+    all_handler.setLevel(logging.INFO)
+    app.logger.addHandler(all_handler)
+
+    # But errors will be specifically brought over here
+    err_path = logdir + '/cache.err.log'
+    err_handler = RotatingFileHandler(err_path, maxBytes=1e8, backupCount=30)
+    err_handler.setLevel(logging.ERROR)
+    app.logger.addHandler(err_handler)
+
+    # Log INFO's and above out to stdout
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setLevel(logging.INFO)
+    app.logger.addHandler(stdout_handler)
+
+
+# Log the given message with a prepended datetime and the given level
+def log(msg, level=logging.INFO):
+    global app
+    time_str = datetime.now().strftime("%d/%b/%Y %H:%M:%S")
+    app.logger.log(level, "[%s] %s"%(time_str, msg))
+
 
 """
 url_name(url)
@@ -77,11 +100,10 @@ class CacheEntry:
 
     def log(self, msg):
         global app
-        app.logger.info("[%s] %s"%(self.name, msg))
+        log("[%s] %s"%(self.name, msg))
 
     def delete(self):
         self.s3_obj.delete()
-        self.cache.cache.remove(self.url)
         self.log("Deleted")
 
     def cache_url(self):
@@ -89,8 +111,9 @@ class CacheEntry:
 
     def probe_headers(self):
         # HEAD the remote resource, failing out if it's not an HTTP 200 OK
-        resp = requests.head(self.url, timeout=1, allow_redirects=True)
-        if resp.status_code != 200:
+        req = urllib.request.Request(self.url, method="HEAD")
+        resp = urllib.request.urlopen(req, timeout=1.5)
+        if resp.code != 200:
             raise ValueError("Received HTTP %d for \"%s\""%(resp.status_code, url))
 
         # Grab the headers and inspect them for an ETag or Last-Modified entry,
@@ -105,6 +128,8 @@ class CacheEntry:
         if "last-modified" in headers:
             lm = headers["last-modified"]
             last_modified = datetime.strptime(lm, "%a, %d %b %Y %H:%M:%S %Z")
+            # Normalize everything to UTC
+            last_modified = last_modified.astimezone(tzutc())
 
         # We're also going to look for a content-type header
         content_type = None
@@ -197,15 +222,40 @@ class AWSCache:
             try:
                 new_cache_entry = CacheEntry(self.s3.Object(self.bucket_name, obj.key))
                 new_cache[new_cache_entry.url] = new_cache_entry
-                app.logger.info("[%s] cache reloading object %s successful"%(new_cache_entry.url, obj.key))
+                log("[%s] cache reloading object %s successful"%(new_cache_entry.url, obj.key))
             except:
-                app.logger.warn("[%s] cache reload failed"%(obj.key))
+                log("[%s] cache reload failed"%(obj.key), level=logging.WARN)
                 traceback.print_exc()
                 pass
 
         # Finally, move new_aws_cache over to aws_cache, clearing out old stuff
-        app.logger.info("Cache rebuild finished")
+        log("Cache rebuild finished")
         self.cache = new_cache
+
+    """
+    check_cache_consistency()
+
+    Performs various sanity checks on the cache, things like the fact that all
+    cache objects are actually enabled on the whitelist/not black or greylisted,
+    that all the files we are currently caching are current, etc...
+    """
+    def check_cache_consistency(self):
+        for url in self.cache:
+            log("[%s] Checking consistency"%(url))
+            entry = self.cache[url]
+
+            if on_blacklist(url):
+                log("  [%s] Cached file is blacklisted!"%(url), level=logging.WARN)
+            if on_greylist(url):
+                log("  [%s] Cached file is greylisted!"%(url), level=logging.WARN)
+            if not on_whitelist(url):
+                log("  [%s] Cached file is not whitelisted!"%(url), level=logging.WARN)
+
+            try:
+                if not entry.check_consistency():
+                    log("  [%s] Cached file is stale"%(url), level=logging.WARN)
+            except IOError as err:
+                log("  [%s] Consistency check timed out"%(url), level=logging.WARN)
 
     """
     url_to_key(url)
@@ -250,6 +300,7 @@ class AWSCache:
         if not url in self.cache:
             return
         self.cache[url].delete()
+        del self.cache[url]
 
     def hit(self, url):
         return self.cache.get(url, None)
@@ -264,6 +315,10 @@ whitelist = [
     # WinRPM binaries.  This line is too long, but I don't care.  :/
     "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d\.]+/[^/]+",
 
+    # Stuff we put on our julialang S3 buckets
+    "s3.amazonaws.com/julialang[\w/\d]*",
+    "julialang[\w\-\d]*.s3.amazonaws.com/",
+
     # Various deps/ tarball locations
     "faculty.cse.tamu.edu/davis/SuiteSparse",
     "download.savannah.gnu.org/releases/libunwind",
@@ -276,7 +331,7 @@ whitelist = [
     "nixos.org/releases/patchelf/patchelf-[\d\.]+",
     "kernel.org/pub/software/scm/git",
     "pypi.python.org/packages/source/v/virtualenv",
-    "llvm.org/releases/[\d\.]+",
+    "releases.llvm.org/[\d\.]+",
     "math.sci.hiroshima-u.ac.jp/~m-mat/MT/SFMT",
     "agner.org/optimize",
     "netlib.org/lapack",
@@ -290,6 +345,7 @@ whitelist = [
     "tls.mbed.org/download",
     "thrysoee.dk/editline",
     "ftp.atnf.csiro.au/pub/software/wcslib",
+    "curl.haxx.se/download",
 
     # Add unicode fonts for libutf8
     "unicode.org/Public/UCD/latest/ucd/auxiliary",
@@ -304,6 +360,9 @@ whitelist = [
     # DLL file ZIPs for mbedTLS
     "api.github.com/repos/malmaud/malmaud.github.io/contents/files",
     "malmaud.github.io/files",
+
+    # Test matrix
+    "raw.githubusercontent.com/opencollab/arpack-ng/[\d.]+/TESTS",
 
     # CMake binaries for JuliaLang/julia#19632
     "cmake.org/files/v[0-9\.]+",
@@ -326,7 +385,7 @@ def regexify(url):
     # Add http://, with optional https and www. in front.  Then, replace all
     # dots within the plain regex string with escaped dots, and finally add the
     # actual filename pattern at the end.
-    return r"^(https?)|(ftp)://(www\.)?" + url.replace(r".", r"\.") + r"/[^/]+$"
+    return r"^((https?)|(ftp))://(www\.)?" + url.replace(".", "\.") + r"/[^/]+$"
 
 whitelist = [w for w in map(regexify, whitelist)]
 
@@ -343,7 +402,7 @@ def add_to_cache(url):
     global pending_downloads, aws_cache
     # Stop double downloads if we get a flood of requests for a single file
     if url in pending_downloads:
-        app.logger.info("[%s] Already downloading, skipping..."%(url))
+        log("[%s] Already downloading, skipping..."%(url))
         return
     pending_downloads += [url]
 
@@ -357,26 +416,54 @@ def add_to_cache(url):
             # bamboozling ways.  Accept not the gift of false downloads, and
             # suffer not the content-type of "text/html" to enter your caches.
             if headers.get("content-type", "") == "text/html":
-                app.logger.info("[%s] Aborting, we got text/html back!"%(url))
+                log("[%s] Aborting, we got text/html back!"%(url))
                 pending_downloads.remove(url)
                 return
 
             # If nothing was downloaded, just exit out after cleaning up
             filesize = os.stat(tmp_name).st_size
             if filesize < 1024:
-                app.logger.info("[%s] Aborting, filesize was <1k (%d)"%(url,filesize))
+                log("[%s] Aborting, filesize was <1k (%d)"%(url, filesize))
                 pending_downloads.remove(url)
                 return
 
-            app.logger.info("[%s] Successfully finished download: %s (%dB)"%(url, tmp_name, filesize))
+            log("[%s] Successfully finished download: %s (%dB)"%(url, tmp_name, filesize))
             aws_cache.add(url, tmp_name, headers.get("etag", None))
 
         pending_downloads.remove(url)
-        app.logger.info("[%s] Finished upload"%(url))
+        log("[%s] Finished upload"%(url))
     except IOError as e:
         # If we got a 404, clean up
-        app.logger.info("[%s] Aborting, got 404"%(url))
+        log("[%s] Aborting, got 404"%(url))
         pending_downloads.remove(url)
+
+"""
+on_blacklist(url)
+
+Returns true if the given URL is on the blacklist (and should be 404'ed)
+"""
+def on_blacklist(url):
+    global blacklist
+    return any([re.match(black_url, url) for black_url in blacklist])
+
+"""
+on_greylist(url)
+
+Returns true if the given URL is on the greylist (and should be expressly 301'ed
+on to the source URL)
+"""
+def on_greylist(url):
+    global greylist
+    return any([re.match(grey_url, url) for grey_url in greylist])
+
+"""
+on_whitelist(url)
+
+Returns true of the given URL is on the whitelist (and thus can be cached)
+"""
+def on_whitelist(url):
+    global whitelist
+    return any([re.match(white_url, url) for white_url in whitelist])
 
 
 # Asking for a full URL after <path:url> queries the cache
@@ -391,19 +478,14 @@ def cache(url):
     if "sourceforge" in url and url[-9:] == "/download":
         url = url[:-9]
 
-    if any([re.match(black_url, url) for black_url in blacklist]):
-        app.logger.info("404'ing %s because it's on the blacklist"%(url))
+    if on_blacklist(url):
+        log("[%s] 404'ing because it's on the blacklist"%(url))
         abort(404)
 
-    # If it's on the greylist, just forward them on right now
-    if any([re.match(grey_url, url) for grey_url in greylist]):
-        app.logger.info("301'ing %s because it's on the greylist"%(url))
-        return redirect(url, code=301)
-
-    # Ensure this URL is something we want to deal with. If it's not, send the
-    # user on their merry way to the original URL
-    if not any([re.match(white_url, url) for white_url in whitelist]):
-        app.logger.info("301'ing %s because it's not on the whitelist"%(url))
+    # If it's on the greylist, or not on the whitelist, just forward them on
+    # to the source url immediately, because we won't cache those links
+    if on_greylist(url) or not on_whitelist(url):
+        log("[%s] 301'ing to source because it's greylisted or at least not whitelisted"%(url))
         return redirect(url, code=301)
 
     cache_entry = aws_cache.hit(url)
@@ -412,11 +494,11 @@ def cache(url):
         # Start a thread downloading, but return immediately redirecting the
         # user temporarily to the original URL, until we've actually cached it.
         _thread.start_new_thread(add_to_cache, (url,))
-        app.logger.info("302'ing %s because we need to redownload it"%(url))
+        log("[%s] 302'ing because we need to freshen up"%(url))
         return redirect(url, code=302)
 
     # Otherwise, forward them on to the cache!
-    app.logger.info("HIT: %s"%(url))
+    log("[%s] HIT!"%(url))
     return redirect(cache_entry.cache_url(), code=301)
 
 
@@ -459,7 +541,12 @@ def index():
     html +=     "</style>"
     html += "</head>"
     html += "<body>"
-    html += "Caching <b>%d</b> files:<br/><br/>\n"%(len(aws_cache.cache))
+
+    num_files = len(aws_cache.cache)
+    total_size = sum(aws_cache.cache[k].size for k in aws_cache.cache)
+    html += "Caching <b>%d</b> files, "%(num_files)
+    html += "totalling <b>%s</b>:"%(sizefmt(total_size))
+    html += "<br/><br/>"
     html += "<table style=\"font-family: monospace;\">"
     URLs = sorted(aws_cache.cache.keys())
     for url in URLs:
@@ -497,5 +584,8 @@ if __name__ == "__main__":
 
     # Initialize aws_cache
     aws_cache = AWSCache("julialangcache")
+
+    # This is a good debugging check
+    #aws_cache.check_cache_consistency()
 
     app.run(host="0.0.0.0",threaded=True)

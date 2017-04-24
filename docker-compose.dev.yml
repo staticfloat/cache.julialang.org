@@ -1,0 +1,13 @@
+version: '2.1'
+services:
+    cache:
+        restart: unless-stopped
+        build:
+            context: cache
+            args:
+                - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
+                - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+        volumes:
+            - /var/log/cache
+        ports:
+            - 5000:5000/tcp
