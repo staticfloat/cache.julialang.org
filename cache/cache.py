@@ -465,6 +465,7 @@ def index():
     for url in URLs:
         name = url_name(url)
         entry = aws_cache.hit(url)
+        modified_str = entry.modified.strftime("%Y-%m-%d %H:%M:%S")
 
         html += "<tr>"
         html += "<td>"
@@ -477,7 +478,7 @@ def index():
         html += "<td>"
         html += "MD5:<br/><b>%s...</b></td>"%(entry.md5[:16])
         html += "<td>"
-        html += "Modified:<br/><b>%s</b></td>\n"%(str(entry.modified))
+        html += "Modified:<br/><b>%s</b></td>\n"%(modified_str)
         html += "<td>"
         html += "Size:<br/><b>%s</b></td>\n"%(sizefmt(entry.size))
         html += "<td>"
