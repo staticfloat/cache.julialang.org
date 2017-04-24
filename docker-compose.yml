@@ -18,6 +18,8 @@ services:
             args:
                 - AWS_ACCESS_KEY=${AWS_ACCESS_KEY}
                 - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+        volumes:
+            - /var/log/cache
 
         expose:
             - 5000
