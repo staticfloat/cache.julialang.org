@@ -35,7 +35,16 @@ def init_logging(app, logdir='/var/log/cache'):
     app.logger.addHandler(stdout_handler)
 
 
-# Log the given message with a prepended datetime and the given level
+"""
+log(msg, level)
+
+Log the given message out to the app's logger instance.  This will get written
+to the main log file and written out to stdout, and if it's of level ERROR or
+higher, it'll get logged to the special error log as well.
+
+We automagically prepend things like the current time to give the illusion of
+order amidst the chaos of our logfile.
+"""
 def log(msg, level=logging.INFO):
     global app
     time_str = datetime.now().strftime("%d/%b/%Y %H:%M:%S")
@@ -94,9 +103,17 @@ class CacheEntry:
         else:
             self.etag = None
 
-        # We store our last consistency check time point, so we can throttle
-        # those checks down a bit.
+        # This is all transient data, things we do not persist within S3.  We
+        # We store some statistics so that we can debug issues a bit, and also
+        # throttle down our number of consistency checks, but these are all
+        # transient; we do not persist these in S3, we just start from zero
+        # again when we restart the app.
+        self.consistent = False
         self.last_consistency_check = 0
+        self.last_successful_consistency_check = 0
+        self.consistency_checks = 0
+        self.consecutive_unsuccessful_consistency_checks = 0
+        # ^^ What a travesty of a variable name.  I love it.
 
     def log(self, msg):
         global app
@@ -138,7 +155,7 @@ class CacheEntry:
 
         return etag, last_modified, content_type
 
-    def check_consistency(self):
+    def _check_consistency(self):
         if self.url.startswith("ftp://"):
             self.log("Cannot consistency check FTP urls, serving cached file")
             return True
@@ -197,6 +214,58 @@ class CacheEntry:
         # If all probulations fail, just serve the cached file
         return True
 
+    """
+    check_consistency()
+
+    Returns `True` if the server responds with metadata about the cached file
+    (such as an `ETag` or `Last-Modified` header) that ensures to us that our
+    cached version of the file is still consistent with the live version on the
+    server.  Note that the result of this consistency check is, by default,
+    cached for 1 minute to avoid flooding upstream servers with HEAD requests.
+    """
+    def check_consistency(self, cache_time = 1*60):
+        # First, check to see if we shouldn't just return our cached consistency
+        curr_time = time.time()
+        if curr_time - self.last_consistency_check < cache_time:
+            return self.consistent
+
+        # Otherwise, ask for the consistency
+        self.last_consistency_check = curr_time
+        self.consistency_checks += 1
+        self.consistent = self._check_consistency()
+
+        # We keep track of some basic statistics on consistency
+        if self.consistent:
+            self.last_successful_consistency_check = curr_time
+            self.consecutive_unsuccessful_consistency_checks = 0
+        else:
+            self.consecutive_unsuccessful_consistency_checks += 1
+
+        # This is what it's all about.  This is why we do all this.  For the
+        # consistency Morty, for the consistency!
+        return self.consistent
+
+    """
+    json_obj()
+
+    Returns a json-serializable dict that summarizes this CacheEntry
+    """
+    def json_obj(self):
+        return {
+            'name': self.name,
+            'size': self.size,
+            'key': self.key,
+            'md5': self.md5,
+            'etag': self.etag,
+            'modified': self.modified.timestamp(),
+            'consistency' : {
+                'last_check': self.last_consistency_check,
+                'last_good_check': self.last_successful_consistency_check,
+                'num_checks': self.consistency_checks,
+                'bad_streak': self.consecutive_unsuccessful_consistency_checks,
+            },
+        }
+
 
 
 class AWSCache:
@@ -208,6 +277,10 @@ class AWSCache:
         # This is a mapping from URLs to CacheEntry's
         self.cache = {}
         self.rebuild()
+
+        self.start_time = time.time()
+        self.total_hits = 0
+
 
     def rebuild(self):
         # This is the new dictionary we'll use to build up our cache
@@ -307,7 +380,22 @@ class AWSCache:
         del self.cache[url]
 
     def hit(self, url):
+        self.total_hits += 1
         return self.cache.get(url, None)
+
+    """
+    json_obj(self)
+
+    Returns a json-serializable dict that summarizes this Cache and every
+    contained CacheEntry
+    """
+    def json_obj(self):
+        objs = {url: self.cache[url].json_obj() for url in self.cache.keys()}
+        return {
+            'uptime': time.time() - self.start_time,
+            'total_hits': self.total_hits,
+            'cache_entries': objs,
+        }
 
 
 # This is our regex whitelist, listing URL patterns we will consent to caching
@@ -509,6 +597,12 @@ def cache(url):
 
 
 # Fancyness!  Adapted from http://goo.gl/FrdBC0
+"""
+sizefmt(num, suffix='B')
+
+Given a number, return a `%%.1f` representation of that number with an SI suffix
+such as "GB" for GigaBytes, or if you provide `Hz` as the `suffix`, `GHz`, etc.
+"""
 def sizefmt(num, suffix='B'):
     for unit in ['','K','M','G','T','P','E','Z']:
         if abs(num) < 1024.0:
@@ -516,6 +610,16 @@ def sizefmt(num, suffix='B'):
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Y', suffix)
 
+"""
+ellipsize(name, max_len)
+
+Given a string `name` and the maximum length `max_len` you want to support,
+return a string truncated if it is greater than `max_len` with ellipses at the
+end.  Note that if the string is filename-like (e.g. ends with an extension
+such as `.tar.gz`) the extension will be preserved if it is not too long.
+
+Example: ellipsize("this_is_long.tar.gz", 17)  ->  'this_is_...tar.gz'
+"""
 def ellipsize(name, max_len):
     if len(name) > max_len:
         # Keep short extensions
@@ -533,7 +637,7 @@ def ellipsize(name, max_len):
         if not len(ext):
             return name[:max_len - 3 - len(ext)] + '...'
         else:
-            return name[:max_len - 3 - len(ext)] + '...' + name[-len(ext):]
+            return name[:max_len - 2 - len(ext)] + '..' + name[-len(ext):]
     return name
 
 # Asking for nothing gives you the currently cached files
@@ -585,6 +689,11 @@ def index():
     html += "</body>"
     html += "</html>"
     return html
+
+@app.route("/api/json")
+def json_dump():
+    global aws_cache
+    return json.dumps(aws_cache.json_obj())
 
 if __name__ == "__main__":
     init_logging(app)

@@ -21,5 +21,7 @@ shell:
 	docker-compose -f $(COMPOSE_FILE) exec cache /bin/bash
 
 logs:
+	# Use this line to see all the logs through docker-compose's native logging
 	#docker-compose -f $(COMPOSE_FILE) logs -f
+	# Us this line to just `tail -f` the application logs
 	docker-compose -f $(COMPOSE_FILE) exec cache /bin/bash -c 'tail -f /var/log/cache/{cache,cache.err}.log'
