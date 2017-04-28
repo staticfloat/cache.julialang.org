@@ -341,6 +341,7 @@ whitelist = [
     "netlib.org/lapack",
     "fftw.org",
     "unsis.googlecode.com/files",
+    "storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/unsis",
     "intgat.tigress.co.uk/rmy/files/busybox",
     "frippery.org/files/busybox",
     "ftp.csx.cam.ac.uk/pub/software/programming/pcre",
