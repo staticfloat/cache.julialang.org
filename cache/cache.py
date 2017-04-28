@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from flask import Flask, redirect, abort
+from flask import Flask, redirect, abort, Response
 import tempfile
 import os, urllib, _thread, boto3, re, sys, time, traceback, json
 from datetime import datetime
@@ -693,7 +693,8 @@ def index():
 @app.route("/api/json")
 def json_dump():
     global aws_cache
-    return json.dumps(aws_cache.json_obj())
+    json_data = json.dumps(aws_cache.json_obj())
+    return Response(json_data, mimetype="application/json")
 
 if __name__ == "__main__":
     init_logging(app)
