@@ -124,7 +124,13 @@ class CacheEntry:
         self.log("Deleted")
 
     def cache_url(self):
-        return "https://julialangcache-s3.julialang.org/" + self.key
+        # TEMPORARILY DISABLE FASTLY BECAUSE OF CENTOS 5 BUILDBOT SSL PROBLEM
+        # https://github.com/JuliaLang/julia/pull/21684#issuecomment-298812729
+        # https://github.com/JuliaWeb/MbedTLS.jl/issues/102#issuecomment-298265305
+        #return "https://julialangcache-s3.julialang.org/" + self.key
+        #
+        # Use S3 directly instead, until we can move to Centos 6 on the buildbots
+        return "https://julialangcache.s3.amazonaws.com/" + self.key
 
     def probe_headers(self):
         # HEAD the remote resource, failing out if it's not an HTTP 200 OK
