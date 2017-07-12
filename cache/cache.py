@@ -450,6 +450,7 @@ whitelist = [
     "unicode.org/Public/UCD/latest/ucd/auxiliary",
     "unicode.org/Public/UNIDATA",
     "unifoundry.com/pub/unifont-[\d\.]+/font-builds",
+    "unicode.org/Public/[\d\.]+/ucd",
 
     # Sourceforge URLs
     "sourceforge.net/projects/pcre/files/pcre/[^/]+",
