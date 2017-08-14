@@ -6,18 +6,18 @@ endif
 
 deploy:
 	docker-compose -f $(COMPOSE_FILE) up --build --remove-orphans -d
+# "test" is just an alias for "deploy"
+test: deploy
 
 build:
 	docker-compose -f $(COMPOSE_FILE) build --pull
 
-test:
-	docker-compose -f $(COMPOSE_FILE) up --build --remove-orphans -d
 
 stop:
 	docker-compose -f $(COMPOSE_FILE) stop
 
 down:
-	docker-compose -f $(COMPOSE_FILE) down
+	docker-compose -f $(COMPOSE_FILE) down --remove-orphans
 
 shell:
 	docker-compose -f $(COMPOSE_FILE) exec cache /bin/bash
