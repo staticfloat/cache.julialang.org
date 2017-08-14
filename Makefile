@@ -4,9 +4,11 @@ else
 COMPOSE_FILE = docker-compose.dev.yml
 endif
 
-
 deploy:
 	docker-compose -f $(COMPOSE_FILE) up --build --remove-orphans -d
+
+build:
+	docker-compose -f $(COMPOSE_FILE) build --pull
 
 test:
 	docker-compose -f $(COMPOSE_FILE) up --build --remove-orphans -d
