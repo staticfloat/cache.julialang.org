@@ -411,7 +411,7 @@ whitelist = [
     "homebrew.bintray.com/bottles",
 
     # WinRPM binaries.  This line is too long, but I don't care.  :/
-    "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d\.]+/[^/]+",
+    "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d.]+/[^/]+",
 
     # Stuff we put on our julialang S3 buckets
     "s3.amazonaws.com/julialang[\w/\d]*",
@@ -425,11 +425,11 @@ whitelist = [
     "api.github.com/repos/[^/]+/[^/]+/tarball",
     "gmplib.org/download/gmp",
     "mpfr.org/mpfr-current",
-    "mpfr.org/mpfr-[\d\.]+",
-    "nixos.org/releases/patchelf/patchelf-[\d\.]+",
+    "mpfr.org/mpfr-[\d.]+",
+    "nixos.org/releases/patchelf/patchelf-[\d.]+",
     "kernel.org/pub/software/scm/git",
     "pypi.python.org/packages/source/v/virtualenv",
-    "releases.llvm.org/[\d\.]+",
+    "releases.llvm.org/[\d.]+",
     "math.sci.hiroshima-u.ac.jp/~m-mat/MT/SFMT",
     "agner.org/optimize",
     "netlib.org/lapack",
@@ -449,8 +449,8 @@ whitelist = [
     # Add unicode fonts for libutf8
     "unicode.org/Public/UCD/latest/ucd/auxiliary",
     "unicode.org/Public/UNIDATA",
-    "unifoundry.com/pub/unifont-[\d\.]+/font-builds",
-    "unicode.org/Public/[\d\.]+/ucd",
+    "unifoundry.com/pub/unifont-[\d.]+/font-builds",
+    "unicode.org/Public/[\d.]+/ucd",
 
     # Sourceforge URLs
     "sourceforge.net/projects/pcre/files/pcre/[^/]+",
@@ -465,7 +465,7 @@ whitelist = [
     "raw.githubusercontent.com/opencollab/arpack-ng/[\d.]+/TESTS",
 
     # CMake binaries for JuliaLang/julia#19632
-    "cmake.org/files/v[0-9\.]+",
+    "cmake.org/files/v[0-9.]+",
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
