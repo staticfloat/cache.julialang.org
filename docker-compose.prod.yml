@@ -10,6 +10,7 @@ services:
             - CERTBOT_EMAIL=${CERTBOT_EMAIL}
         depends_on:
             - cache
+            - webhook
 
     cache:
         restart: unless-stopped
@@ -20,6 +21,18 @@ services:
                 - AWS_SECRET_KEY=${AWS_SECRET_KEY}
         volumes:
             - /var/log/cache
-
         expose:
             - 5000
+
+    webhook:
+        restart: unless-stopped
+        image: staticfloat/docker-webhook
+        volumes:
+            # Mount this code into /code
+            - ./:/code
+            # Mount the hooks into /app/hooks
+            - ./hooks:/app/hooks
+            # Mount the docker socket
+            - /var/run/docker.sock:/var/run/docker.sock
+        expose:
+            - 8000
