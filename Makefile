@@ -9,6 +9,10 @@ deploy:
 # "test" is just an alias for "deploy"
 test: deploy
 
+self-upgrade:
+	git pull
+	docker-compose -f docker-compose.prod.yml up --build -d cache frontend
+
 build:
 	docker-compose -f $(COMPOSE_FILE) build --pull
 

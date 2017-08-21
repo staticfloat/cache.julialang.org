@@ -28,13 +28,12 @@ services:
         restart: unless-stopped
         image: staticfloat/docker-webhook
         volumes:
-            # Mount this code into /code
-            - ./:/code
+            # Mount this code into /cache.julialang.org
+            - ./:/cache.julialang.org
             # Mount the docker socket
             - /var/run/docker.sock:/var/run/docker.sock
         environment:
             - WEBHOOK_SECRET=${WEBHOOK_SECRET}
-            - WEBHOOK_HOOKS_DIR=/code/hooks
-            - WEBHOOK_BRANCH_LIST=master
+            - WEBHOOK_HOOKS_DIR=/cache.julialang.org/hooks
         expose:
             - 8000
