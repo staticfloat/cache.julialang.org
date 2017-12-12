@@ -412,6 +412,7 @@ whitelist = [
 
     # WinRPM binaries.  This line is too long, but I don't care.  :/
     "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d.]+/[^/]+",
+    "cygwin.com/setup-[^/]+.exe",
 
     # Stuff we put on our julialang S3 buckets
     "s3.amazonaws.com/julialang[\w/\d]*",
