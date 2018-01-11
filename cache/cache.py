@@ -412,6 +412,7 @@ whitelist = [
 
     # WinRPM binaries.  This line is too long, but I don't care.  :/
     "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d.]+/[^/]+",
+    "cygwin.com/setup-[^/]+.exe$",
 
     # Stuff we put on our julialang S3 buckets
     "s3.amazonaws.com/julialang[\w/\d]*",
@@ -485,7 +486,8 @@ def regexify(url):
     # Add http://, with optional https and www. in front.  Then, replace all
     # dots within the plain regex string with escaped dots, and finally add the
     # actual filename pattern at the end.
-    return r"^((https?)|(ftp))://(www\.)?" + url.replace(".", "\.") + r"/[^/]+$"
+    url = r"^((https?)|(ftp))://(www\.)?" + url.replace(".", "\.")
+    return url if url.endswith("$") else (url + r"/[^/]+$")
 
 whitelist = [w for w in map(regexify, whitelist)]
 
