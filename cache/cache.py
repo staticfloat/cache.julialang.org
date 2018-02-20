@@ -478,7 +478,6 @@ blacklist = [
 # as a special exclusion list when we need to reject something that would
 # otherwise be matched by the whitelist, and hence cached
 greylist = [
-    ".*/repomd.xml",
 ]
 
 # Take an URL pattern and add all the regex stuff to match an incoming URL
