@@ -410,13 +410,13 @@ whitelist = [
     "download.sf.net/project/machomebrew/Bottles",
     "homebrew.bintray.com/bottles",
 
-    # WinRPM binaries.  This line is too long, but I don't care.  :/
-    "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[\d.]+/[^/]+",
+    # WinRPM binaries
+    "download.opensuse.org/repositories/windows:/mingw:/win[\d]+/openSUSE_[^/]+/[^/]+",
     "cygwin.com/setup-[^/]+.exe$",
 
     # Stuff we put on our julialang S3 buckets
     "s3.amazonaws.com/julialang[\w/\d]*",
-    "julialang[\w\-\d]*.s3.amazonaws.com/",
+    "julialang[\w\-\d]*.s3.amazonaws.com",
 
     # Various deps/ tarball locations
     "faculty.cse.tamu.edu/davis/SuiteSparse",
