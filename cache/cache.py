@@ -467,6 +467,11 @@ whitelist = [
 
     # CMake binaries for JuliaLang/julia#19632
     "cmake.org/files/v[0-9.]+",
+
+    # Datasets for Flux.jl
+    "svn.code.sf.net/p/cmusphinx/code/trunk/cmudict",
+    "yann.lecun.com/exdb/mnist",
+    "nlp.stanford.edu/sentiment",
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
