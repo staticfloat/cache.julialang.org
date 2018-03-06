@@ -504,7 +504,7 @@ add_to_cache(url)
 Download the given url and add it to the cache, using `pending_downloads` to
 prevent multiple simultaneous downloads of the same file.
 """
-def add_to_cache(url):
+def add_to_cache(url, minsize=1024):
     global pending_downloads, aws_cache
     # Stop double downloads if we get a flood of requests for a single file
     if url in pending_downloads:
@@ -528,8 +528,8 @@ def add_to_cache(url):
 
             # If nothing was downloaded, just exit out after cleaning up
             filesize = os.stat(tmp_name).st_size
-            if filesize < 1024:
-                log("[%s] Aborting, filesize was <1k (%d)"%(url, filesize))
+            if filesize < minsize:
+                log("[%s] Aborting, filesize was <%dk (%d)"%(minsize//1024, url, filesize))
                 pending_downloads.remove(url)
                 return
 
