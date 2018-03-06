@@ -446,6 +446,7 @@ whitelist = [
     "thrysoee.dk/editline",
     "ftp.atnf.csiro.au/pub/software/wcslib",
     "curl.haxx.se/download",
+    "curl.haxx.se/ca",
 
     # Add unicode fonts for libutf8
     "unicode.org/Public/UCD/latest/ucd/auxiliary",
