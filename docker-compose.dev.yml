@@ -1,5 +1,15 @@
 version: '2.1'
 services:
+    frontend:
+        restart: unless-stopped
+        build: frontend_dev
+        ports:
+            - 80:80/tcp
+        environment:
+            - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+        depends_on:
+            - cache
+
     cache:
         restart: unless-stopped
         build:
@@ -9,5 +19,5 @@ services:
                 - AWS_SECRET_KEY=${AWS_SECRET_KEY}
         volumes:
             - /var/log/cache
-        ports:
-            - 5000:5000/tcp
+        expose:
+            - 5000
