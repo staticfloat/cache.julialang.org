@@ -11,6 +11,10 @@ services:
         depends_on:
             - cache
             - webhook
+        logging:
+            options:
+                max-size: "1M"
+                max-file: "10"
 
     cache:
         restart: unless-stopped
@@ -23,6 +27,10 @@ services:
             - /var/log/cache
         expose:
             - 5000
+        logging:
+            options:
+                max-size: "1M"
+                max-file: "10"
 
     webhook:
         restart: unless-stopped
@@ -37,3 +45,8 @@ services:
             - WEBHOOK_HOOKS_DIR=/cache.julialang.org/hooks
         expose:
             - 8000
+        logging:
+            options:
+                max-size: "1M"
+                max-file: "10"
+

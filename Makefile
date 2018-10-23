@@ -1,4 +1,4 @@
-ifeq ($(HOSTNAME),cache2)
+ifeq ($(HOSTNAME),cache)
 COMPOSE_FILE = docker-compose.prod.yml
 else
 COMPOSE_FILE = docker-compose.dev.yml
@@ -11,7 +11,7 @@ test: deploy
 
 self-upgrade:
 	git pull
-	docker-compose -f docker-compose.prod.yml up --build -d cache frontend
+	docker-compose -f docker-compose.prod.yml up --build -d cache
 
 build:
 	docker-compose -f $(COMPOSE_FILE) build --pull
