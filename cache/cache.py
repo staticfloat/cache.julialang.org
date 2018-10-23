@@ -440,7 +440,7 @@ whitelist = [
     "intgat.tigress.co.uk/rmy/files/busybox",
     "frippery.org/files/busybox",
     "ftp.csx.cam.ac.uk/pub/software/programming/pcre",
-    "ftp.pcre.org/pub/pcre/",
+    "ftp.pcre.org/pub/pcre",
     "bintray.com/artifact/download/[^/]+/generic",
     "imagemagick.org/download/binaries",
     "tls.mbed.org/download",
