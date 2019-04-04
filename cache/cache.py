@@ -474,7 +474,7 @@ whitelist = [
     "svn.code.sf.net/p/cmusphinx/code/trunk/cmudict",
     "yann.lecun.com/exdb/mnist",
     "nlp.stanford.edu/sentiment",
-    "archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data",
+    "archive.ics.uci.edu/ml/machine-learning-databases/iris",
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
