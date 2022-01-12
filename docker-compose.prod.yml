@@ -2,10 +2,12 @@ version: '2.1'
 services:
     frontend:
         restart: unless-stopped
-        build: frontend
+        image: jonasal/nginx-certbot
         ports:
             - 80:80/tcp
             - 443:443/tcp
+        volumes:
+            - ./frontend/cache.julialang.org.conf:/etc/nginx/user_conf.d/cache.julialang.org.conf
         environment:
             - CERTBOT_EMAIL=${CERTBOT_EMAIL}
         depends_on:
