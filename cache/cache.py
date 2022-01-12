@@ -475,6 +475,9 @@ whitelist = [
     "yann.lecun.com/exdb/mnist",
     "nlp.stanford.edu/sentiment",
     "archive.ics.uci.edu/ml/machine-learning-databases/iris",
+
+    # stdlib Artifacts.toml files
+    "github.com/JuliaBinaryWrappers/[^/]+_jll.jl/raw/[^/]+/Artifacts.toml$",
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
