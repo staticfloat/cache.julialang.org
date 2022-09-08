@@ -478,6 +478,9 @@ whitelist = [
 
     # stdlib Artifacts.toml files
     "github.com/JuliaBinaryWrappers/[^/]+_jll.jl/raw/[^/]+/Artifacts.toml$",
+
+    # inno setup
+    "www.jrsoftware.org/download.php/is.exe$",
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
