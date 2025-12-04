@@ -319,7 +319,7 @@ class AWSCache:
     check_cache_consistency()
 
     Performs various sanity checks on the cache, things like the fact that all
-    cache objects are actually enabled on the whitelist/not black or greylisted,
+    cache objects are actually enabled on the allowlist/not deny- or exclude-listed,
     that all the files we are currently caching are current, etc...
     """
     def check_cache_consistency(self):
@@ -327,12 +327,12 @@ class AWSCache:
             log("[%s] Checking consistency"%(url))
             entry = self.cache[url]
 
-            if on_blacklist(url):
-                log("  [%s] Cached file is blacklisted!"%(url), level=logging.WARN)
-            if on_greylist(url):
-                log("  [%s] Cached file is greylisted!"%(url), level=logging.WARN)
-            if not on_whitelist(url):
-                log("  [%s] Cached file is not whitelisted!"%(url), level=logging.WARN)
+            if on_denylist(url):
+                log("  [%s] Cached file is deny-listed!"%(url), level=logging.WARN)
+            if on_excludelist(url):
+                log("  [%s] Cached file is exclude-listed!"%(url), level=logging.WARN)
+            if not on_allowlist(url):
+                log("  [%s] Cached file is not allow-listed!"%(url), level=logging.WARN)
 
             try:
                 if not entry.check_consistency():
@@ -404,8 +404,8 @@ class AWSCache:
         }
 
 
-# This is our regex whitelist, listing URL patterns we will consent to caching
-whitelist = [
+# This is our regex allowlist, listing URL patterns we will consent to caching
+allowlist = [
     # Homebrew bottles
     "download.sf.net/project/machomebrew/Bottles",
     "homebrew.bintray.com/bottles",
@@ -485,14 +485,14 @@ whitelist = [
 ]
 
 # A list of regexes (NOT passed through regexify) that we reject
-blacklist = [
+denylist = [
     "favicon.ico",
 ]
 
 # A list of regexes (NOT passed through regexify) that we refuse to cache, acts
 # as a special exclusion list when we need to reject something that would
-# otherwise be matched by the whitelist, and hence cached
-greylist = [
+# otherwise be matched by the allowlist, and hence cached
+excludelist = [
 ]
 
 # Take an URL pattern and add all the regex stuff to match an incoming URL
@@ -503,7 +503,7 @@ def regexify(url):
     url = r"^((https?)|(ftp))://(www\.)?" + url.replace(".", "\.")
     return url if url.endswith("$") else (url + r"/[^/]+$")
 
-whitelist = [w for w in map(regexify, whitelist)]
+allowlist = [w for w in map(regexify, allowlist)]
 
 # The list of files that are currently downloading, so we don't download twice
 pending_downloads = []
@@ -554,32 +554,32 @@ def add_to_cache(url, minsize=1024):
         pending_downloads.remove(url)
 
 """
-on_blacklist(url)
+on_denylist(url)
 
-Returns true if the given URL is on the blacklist (and should be 404'ed)
+Returns true if the given URL is on the denylist (and should be 404'ed)
 """
-def on_blacklist(url):
-    global blacklist
-    return any([re.match(black_url, url) for black_url in blacklist])
+def on_denylist(url):
+    global denylist
+    return any([re.match(deny_url, url) for deny_url in denylist])
 
 """
-on_greylist(url)
+on_excludelist(url)
 
-Returns true if the given URL is on the greylist (and should be expressly 301'ed
+Returns true if the given URL is on the excludelist (and should be expressly 301'ed
 on to the source URL)
 """
-def on_greylist(url):
-    global greylist
-    return any([re.match(grey_url, url) for grey_url in greylist])
+def on_excludelist(url):
+    global excludelist
+    return any([re.match(grey_url, url) for grey_url in excludelist])
 
 """
-on_whitelist(url)
+on_allowlist(url)
 
-Returns true of the given URL is on the whitelist (and thus can be cached)
+Returns true of the given URL is on the allowlist (and thus can be cached)
 """
-def on_whitelist(url):
-    global whitelist
-    return any([re.match(white_url, url) for white_url in whitelist])
+def on_allowlist(url):
+    global allowlist
+    return any([re.match(allow_url, url) for allow_url in allowlist])
 
 
 # Asking for a full URL after <path:url> queries the cache
@@ -594,14 +594,14 @@ def cache(url):
     if "sourceforge" in url and url[-9:] == "/download":
         url = url[:-9]
 
-    if on_blacklist(url):
-        log("[%s] 404'ing because it's on the blacklist"%(url))
+    if on_denylist(url):
+        log("[%s] 404'ing because it's on the denylist"%(url))
         abort(404)
 
-    # If it's on the greylist, or not on the whitelist, just forward them on
+    # If it's on the excludelist, or not on the allowlist, just forward them on
     # to the source url immediately, because we won't cache those links
-    if on_greylist(url) or not on_whitelist(url):
-        log("[%s] 301'ing to source because it's greylisted or at least not whitelisted"%(url))
+    if on_excludelist(url) or not on_allowlist(url):
+        log("[%s] 301'ing to source because it's exclude-listed or at least not allow-listed"%(url))
         return redirect(url, code=301)
 
     cache_entry = aws_cache.hit(url)
