@@ -421,6 +421,7 @@ whitelist = [
     # Various deps/ tarball locations
     "faculty.cse.tamu.edu/davis/SuiteSparse",
     "ftp.gnu.org/gnu",
+    "ftpmirror.gnu.org/gnu",
     "download.savannah.gnu.org/releases/libunwind",
     "github.com/[^/]+/[^/]+/archive",
     "github.com/[^/]+/[^/]+/releases/download/([^/]+)?",
